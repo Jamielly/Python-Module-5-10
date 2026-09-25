@@ -26,9 +26,11 @@ class DataProcessor(ABC):
 class NumericProcessor(DataProcessor):
 
     def validate(self, data: typing.Any) -> bool:
-        if isinstance(data, (int, float)) and not isinstance(data, bool):
+        if isinstance(data, bool):
+            return False
+        if isinstance(data, (int, float)):
             return True
-        if isinstance(data, list) and data:
+        if isinstance(data, list):
             return all(
                 isinstance(x, (int, float)) and not isinstance(x, bool)
                 for x in data
@@ -38,7 +40,6 @@ class NumericProcessor(DataProcessor):
     def ingest(self, data: int | float | list[int | float]) -> None:
         if not self.validate(data):
             raise ValueError("Improper numeric data")
-
         items = data if isinstance(data, list) else [data]
         for item in items:
             self._storage.append((self._total_processed, str(item)))
@@ -50,7 +51,7 @@ class TextProcessor(DataProcessor):
     def validate(self, data: typing.Any) -> bool:
         if isinstance(data, str):
             return True
-        if isinstance(data, list) and data:
+        if isinstance(data, list):
             return all(isinstance(x, str) for x in data)
         return False
 
@@ -68,30 +69,28 @@ class LogProcessor(DataProcessor):
 
     def validate(self, data: typing.Any) -> bool:
         def is_valid_log(d: typing.Any) -> bool:
-            return (
-                isinstance(d, dict)
-                and all(
-                    isinstance(k, str) and isinstance(v, str)
-                    for k, v in d.items()
-                )
+            if not isinstance(d, dict):
+                return False
+            return any(k in d for k in ("log_level", "log_message")) and all(
+                isinstance(k, str) for k in d.keys()
             )
 
         if is_valid_log(data):
             return True
-        if isinstance(data, list) and data:
+        if isinstance(data, list):
             return all(is_valid_log(x) for x in data)
         return False
 
     def ingest(
-        self, data: dict[str, str] | list[dict[str, str]]
+        self, data: dict[str, typing.Any] | list[dict[str, typing.Any]]
     ) -> None:
         if not self.validate(data):
             raise ValueError("Improper log data")
 
         items = data if isinstance(data, list) else [data]
         for entry in items:
-            level = entry.get("log_level", "INFO").strip()
-            msg = entry.get("log_message", "").strip()
+            level = str(entry.get("log_level", "INFO")).strip()
+            msg = str(entry.get("log_message", "")).strip()
             formatted_log = f"{level}: {msg}"
             self._storage.append((self._total_processed, formatted_log))
             self._total_processed += 1
@@ -104,6 +103,7 @@ def main() -> None:
     num_proc = NumericProcessor()
     print(f"Trying to validate input '42': {num_proc.validate(42)}")
     print(f"Trying to validate input 'Hello': {num_proc.validate('Hello')}")
+    print(f"Trying to validate empty list '[]': {num_proc.validate([])}")
 
     try:
         print(
@@ -113,7 +113,7 @@ def main() -> None:
     except ValueError as e:
         print(f"Got exception: {e}")
 
-    num_data = [6-10]
+    num_data = [6, 7, 8, 9, 10]
     print(f"Processing data: {num_data}")
     num_proc.ingest(num_data)
     print("Extracting 3 values...")
@@ -133,14 +133,11 @@ def main() -> None:
 
     print("\nTesting Log Processor...")
     log_proc = LogProcessor()
-    print(
-        f"Trying to validate input 'Hello':"
-        f" {log_proc.validate('Hello')}"
-        )
+    print(f"Trying to validate input 'Hello': {log_proc.validate('Hello')}")
     log_data = [
         {"log_level": "NOTICE", "log_message": "Connection to server"},
         {"log_level": "ERROR", "log_message": "Unauthorized access!!"},
-        ]
+    ]
     print(f"Processing data: {log_data}")
     log_proc.ingest(log_data)
     print("Extracting 2 values...")
