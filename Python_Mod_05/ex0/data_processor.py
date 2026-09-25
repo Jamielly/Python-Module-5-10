@@ -115,7 +115,7 @@ def main() -> None:
 
     num_data = [6-10]
     print(f"Processing data: {num_data}")
-    num_proc.ingest(num_data[0])
+    num_proc.ingest(num_data)
     print("Extracting 3 values...")
     for _ in range(3):
         rank, val = num_proc.output()
