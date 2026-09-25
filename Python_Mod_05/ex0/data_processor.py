@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 import typing
 
 
@@ -37,10 +38,14 @@ class NumericProcessor(DataProcessor):
             )
         return False
 
-    def ingest(self, data: int | float | list[int | float]) -> None:
+    def ingest(self, data: int | float | Sequence[int | float]) -> None:
         if not self.validate(data):
             raise ValueError("Improper numeric data")
-        items = data if isinstance(data, list) else [data]
+        items: Sequence[int | float]
+        if isinstance(data, (int, float)):
+            items = [data]
+        else:
+            items = data
         for item in items:
             self._storage.append((self._total_processed, str(item)))
             self._total_processed += 1
@@ -55,11 +60,15 @@ class TextProcessor(DataProcessor):
             return all(isinstance(x, str) for x in data)
         return False
 
-    def ingest(self, data: str | list[str]) -> None:
+    def ingest(self, data: str | Sequence[str]) -> None:
         if not self.validate(data):
             raise ValueError("Improper text data")
 
-        items = data if isinstance(data, list) else [data]
+        items: Sequence[str]
+        if isinstance(data, str):
+            items = [data]
+        else:
+            items = data
         for item in items:
             self._storage.append((self._total_processed, item))
             self._total_processed += 1
@@ -82,12 +91,17 @@ class LogProcessor(DataProcessor):
         return False
 
     def ingest(
-        self, data: dict[str, typing.Any] | list[dict[str, typing.Any]]
+        self,
+        data: dict[str, typing.Any] | Sequence[dict[str, typing.Any]],
     ) -> None:
         if not self.validate(data):
             raise ValueError("Improper log data")
 
-        items = data if isinstance(data, list) else [data]
+        items: Sequence[dict[str, typing.Any]]
+        if isinstance(data, dict):
+            items = [data]
+        else:
+            items = data
         for entry in items:
             level = str(entry.get("log_level", "INFO")).strip()
             msg = str(entry.get("log_message", "")).strip()
@@ -107,8 +121,9 @@ def main() -> None:
 
     try:
         print(
-            "Test invalid ingestion of string 'foo' without prior validation:"
-            )
+            "Test invalid ingestion of string 'foo' "
+            "without prior validation:"
+        )
         num_proc.ingest("foo")  # type: ignore[arg-type]
     except ValueError as e:
         print(f"Got exception: {e}")
