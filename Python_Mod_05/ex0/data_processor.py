@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
 import typing
 
 
@@ -38,10 +37,10 @@ class NumericProcessor(DataProcessor):
             )
         return False
 
-    def ingest(self, data: int | float | Sequence[int | float]) -> None:
+    def ingest(self, data: int | float | list[int | float]) -> None:
         if not self.validate(data):
             raise ValueError("Improper numeric data")
-        items: Sequence[int | float]
+        items: list[int | float]
         if isinstance(data, (int, float)):
             items = [data]
         else:
@@ -60,11 +59,11 @@ class TextProcessor(DataProcessor):
             return all(isinstance(x, str) for x in data)
         return False
 
-    def ingest(self, data: str | Sequence[str]) -> None:
+    def ingest(self, data: str | list[str]) -> None:
         if not self.validate(data):
             raise ValueError("Improper text data")
 
-        items: Sequence[str]
+        items: list[str]
         if isinstance(data, str):
             items = [data]
         else:
@@ -92,12 +91,12 @@ class LogProcessor(DataProcessor):
 
     def ingest(
         self,
-        data: dict[str, typing.Any] | Sequence[dict[str, typing.Any]],
+        data: dict[str, typing.Any] | list[dict[str, typing.Any]],
     ) -> None:
         if not self.validate(data):
             raise ValueError("Improper log data")
 
-        items: Sequence[dict[str, typing.Any]]
+        items: list[dict[str, typing.Any]]
         if isinstance(data, dict):
             items = [data]
         else:
@@ -128,7 +127,7 @@ def main() -> None:
     except ValueError as e:
         print(f"Got exception: {e}")
 
-    num_data = [6, 7, 8, 9, 10]
+    num_data: list[int | float] = [6, 7, 8, 9, 10]
     print(f"Processing data: {num_data}")
     num_proc.ingest(num_data)
     print("Extracting 3 values...")
