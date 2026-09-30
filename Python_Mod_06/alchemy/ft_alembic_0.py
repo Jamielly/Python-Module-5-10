@@ -1,1 +1,0 @@
-print ("=== Alembic 0 ==")
